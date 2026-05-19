@@ -1,42 +1,45 @@
-// src/app.js
-// Este archivo configura Express: middlewares, rutas y manejo de errores
-require('dotenv').config();
 const express = require('express');
+const cors = require('cors');
+const morgan = require('morgan');
+const swaggerUi = require('swagger-ui-express');
+const swaggerJsdoc = require('swagger-jsdoc');
+
 const app = express();
-// ── MIDDLEWARES GLOBALES
 
-// express.json() permite leer el body de las peticiones POST/PUT en formato JSON
-// Sin este middleware, req.body siempre sería undefined
+// Middlewares
+app.use(cors());
+app.use(morgan('dev'));
 app.use(express.json());
-// Middleware de logs: muestra en consola cada petición que llega
-app.use((req, res, next) => {
-const timestamp = new Date().toISOString().substring(11, 19);
-console.log(`[${timestamp}] ${req.method} ${req.path}`);
-next(); // Pasar al siguiente middleware o ruta
-});
-// ── RUTAS
 
-// Ruta raíz: verifica que el servidor funciona
-app.get('/', (req, res) => {
-res.json({
-mensaje: 'StudySync API funcionando',
-version: '1.0.0',
-endpoints: ['/api/sesiones', '/auth/register', '/auth/login', '/api-docs']
-});
-});
-// Las rutas principales se importan aquí (se agregan en el Paso 4)
-// app.use('/api/sesiones', require('./routes/sesiones'));
-// app.use('/auth', require('./routes/auth'));
-// ── MANEJO DE ERRORES GLOBAL
+// Configuración de las opciones de Swagger
+const swaggerOptions = {
+  definition: {
+    openapi: '3.0.0',
+    info: {
+      title: 'StudySync API',
+      version: '1.0.0',
+      description: 'Documentación del Sistema de coordinación de grupos de estudio',
+    },
+    servers: [
+      {
+        url: process.env.NODE_ENV === 'production' 
+          ? 'https://studysync-api-yd9y.onrender.com' 
+          : 'http://localhost:3000',
+        description: 'Servidor de desarrollo / producción',
+      },
+    ],
+  },
+  // Ruta a los archivos donde escribirás la documentación de los endpoints
+  apis: ['./src/routes/*.js'], 
+};
 
-// Este middleware de 4 parámetros SIEMPRE va AL FINAL de todo
-// Captura cualquier error que haya ocurrido en las rutas anteriores
-app.use((err, req, res, next) => {
-console.error('[ERROR]', err.message);
-res.status(err.status || 500).json({
-error: err.message || 'Error interno del servidor',
-timestamp: new Date().toISOString(),
-ruta: req.path
-});
-});
+const swaggerDocs = swaggerJsdoc(swaggerOptions);
+
+// Ruta para la interfaz gráfica de Swagger
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocs));
+
+// Tus rutas existentes
+app.use('/api/sesiones', require('./routes/sesiones'));
+app.use('/api/auth', require('./routes/auth'));
+
 module.exports = app;
