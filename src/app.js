@@ -25,8 +25,11 @@ endpoints: ['/api/sesiones', '/auth/register', '/auth/login', '/api-docs']
 });
 });
 // Las rutas principales se importan aquí (se agregan en el Paso 4)
-// app.use('/api/sesiones', require('./routes/sesiones'));
-// app.use('/auth', require('./routes/auth'));
+app.use('/api/sesiones', require('./routes/sesiones'));
+const sesionesRouter = require('./routes/sesiones');
+app.use('/auth', require('./routes/auth'));
+app.use('/api/sesiones', sesionesRouter);
+// La ruta /auth se agrega en el Paso 9 (JWT)
 // ── MANEJO DE ERRORES GLOBAL
 
 // Este middleware de 4 parámetros SIEMPRE va AL FINAL de todo
