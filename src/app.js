@@ -12,6 +12,9 @@ app.use(cors());
 app.use(morgan('dev'));
 app.use(express.json());
 
+// Servir archivos estáticos (como el index.html) desde la carpeta 'public'
+app.use(express.static(path.join(__dirname, '../public')));
+
 // Configuración de las opciones de Swagger
 const swaggerOptions = {
   definition: {
@@ -38,8 +41,8 @@ const swaggerDocs = swaggerJsdoc(swaggerOptions);
 // Ruta para la interfaz gráfica de Swagger
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocs));
 
-// Ruta raíz de verificación
-app.get('/', (req, res) => {
+// Ruta de verificación (movida a /api para no chocar con el index.html)
+app.get('/api', (req, res) => {
   res.json({
     mensaje: 'StudySync API funcionando',
     version: '1.0.0',
