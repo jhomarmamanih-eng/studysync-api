@@ -3,6 +3,7 @@ const cors = require('cors');
 const morgan = require('morgan');
 const swaggerUi = require('swagger-ui-express');
 const swaggerJsdoc = require('swagger-jsdoc');
+const path = require('path');
 
 const app = express();
 
@@ -29,7 +30,7 @@ const swaggerOptions = {
       },
     ],
   },
-  apis: ['./src/routes/*.js'], 
+  apis: [path.join(__dirname, './routes/*.js')], 
 };
 
 const swaggerDocs = swaggerJsdoc(swaggerOptions);
@@ -49,11 +50,5 @@ app.get('/', (req, res) => {
 // Tus rutas principales
 app.use('/api/sesiones', require('./routes/sesiones'));
 app.use('/api/auth', require('./routes/auth'));
-
-// Manejo de errores global (Opcional)
-app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).json({ error: 'Algo salió mal en el servidor' });
-});
 
 module.exports = app;
