@@ -29,7 +29,6 @@ const swaggerOptions = {
       },
     ],
   },
-  // Ruta a los archivos donde escribirás la documentación de los endpoints
   apis: ['./src/routes/*.js'], 
 };
 
@@ -38,8 +37,23 @@ const swaggerDocs = swaggerJsdoc(swaggerOptions);
 // Ruta para la interfaz gráfica de Swagger
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocs));
 
-// Tus rutas existentes
+// Ruta raíz de verificación
+app.get('/', (req, res) => {
+  res.json({
+    mensaje: 'StudySync API funcionando',
+    version: '1.0.0',
+    endpoints: ['/api/sesiones', '/api/auth', '/api-docs']
+  });
+});
+
+// Tus rutas principales
 app.use('/api/sesiones', require('./routes/sesiones'));
 app.use('/api/auth', require('./routes/auth'));
+
+// Manejo de errores global (Opcional)
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).json({ error: 'Algo salió mal en el servidor' });
+});
 
 module.exports = app;
