@@ -91,11 +91,15 @@ router.get ('/:id', ctrl.obtenerUna);
  *         application/json:
  *           schema:
  *             $ref: '#/components/schemas/Sesion'
+ *     security:
+ *       - BearerAuth: []
  *     responses:
  *       201:
  *         description: Sesión creada correctamente
  *       400:
  *         description: Error en los datos enviados
+ *       401:
+ *         description: Acceso denegado. Se requiere autenticación por token Bearer.
  */
 // CORREGIDO: Se añade 'autenticar' como middleware para asociar la sesión al usuario logueado
 router.post ('/', autenticar, ctrl.crear);
@@ -119,9 +123,15 @@ router.post ('/', autenticar, ctrl.crear);
  *         application/json:
  *           schema:
  *             $ref: '#/components/schemas/Sesion'
+ *     security:
+ *       - BearerAuth: []
  *     responses:
  *       200:
  *         description: Sesión actualizada correctamente
+ *       401:
+ *         description: Acceso denegado. Token no provisto o inválido.
+ *       403:
+ *         description: Operación prohibida. No tienes permisos sobre esta sesión.
  *       404:
  *         description: Sesión no encontrada
  */
@@ -141,9 +151,15 @@ router.put ('/:id', autenticar, ctrl.actualizar);
  *           type: integer
  *         required: true
  *         description: ID de la sesión
+ *     security:
+ *       - BearerAuth: []
  *     responses:
  *       200:
  *         description: Sesión eliminada correctamente
+ *       401:
+ *         description: Acceso denegado. Token no provisto o inválido.
+ *       403:
+ *         description: Operación prohibida. No tienes permisos sobre esta sesión.
  *       404:
  *         description: Sesión no encontrada
  */
