@@ -79,4 +79,22 @@ return res.status(403).json({ error: 'No tienes permiso para eliminar esta sesi�
 await prisma.sesion.delete({ where: { id } });
 res.json({ ok: true, mensaje: `Sesión ${id} eliminada` });
 };
-module.exports = { listar, obtenerUna, crear, actualizar, eliminar };
+// ── GET /api/sesiones/usuario/:usuarioId
+const listarPorUsuario = async (req, res) => {
+	const usuarioId = parseInt(req.params.usuarioId);
+	if (isNaN(usuarioId)) return res.status(400).json({ error: 'usuarioId inválido' });
+	const sesiones = await prisma.sesion.findMany({
+		where: { usuarioId },
+		include: { usuario: { select: { id: true, nombre: true } } },
+		orderBy: { creadaEn: 'desc' }
+	});
+	res.json({ ok: true, total: sesiones.length, datos: sesiones });
+};
+
+// ── GET /api/sesiones/count
+const contar = async (req, res) => {
+	const total = await prisma.sesion.count();
+	res.json({ ok: true, total });
+};
+
+module.exports = { listar, obtenerUna, crear, actualizar, eliminar, listarPorUsuario, contar };

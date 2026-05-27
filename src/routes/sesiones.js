@@ -81,6 +81,37 @@ router.get ('/:id', ctrl.obtenerUna);
 
 /**
  * @swagger
+ * /api/sesiones/usuario/{usuarioId}:
+ *   get:
+ *     summary: Obtiene las sesiones creadas por un usuario
+ *     tags: [Sesiones]
+ *     parameters:
+ *       - in: path
+ *         name: usuarioId
+ *         schema:
+ *           type: integer
+ *         required: true
+ *         description: ID del usuario
+ *     responses:
+ *       200:
+ *         description: Sesiones del usuario
+ */
+router.get('/usuario/:usuarioId', ctrl.listarPorUsuario);
+
+/**
+ * @swagger
+ * /api/sesiones/count:
+ *   get:
+ *     summary: Devuelve el número total de sesiones
+ *     tags: [Sesiones]
+ *     responses:
+ *       200:
+ *         description: Conteo de sesiones
+ */
+router.get('/count', ctrl.contar);
+
+/**
+ * @swagger
  * /api/sesiones:
  *   post:
  *     summary: Crea una nueva sesión de estudio

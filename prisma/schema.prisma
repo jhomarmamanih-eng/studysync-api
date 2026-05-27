@@ -3,33 +3,37 @@
 // Es el equivalente a los CREATE TABLE de SQL, pero en un lenguaje más legible
 generator client {
   provider = "prisma-client-js"
-  output   = "../src/generated/prisma"
 }
+
 datasource db {
-provider = "postgresql"
-url = env("DATABASE_URL") // Lee el .env
+  provider = "postgresql"
+  url      = env("DATABASE_URL") // Lee el .env
 }
+
 // Modelo Usuario: representa la tabla 'usuarios' en la BD
 model Usuario {
-id Int @id @default(autoincrement()) // Clave primaria autoincremental
-nombre String
-email String @unique // No puede haber dos con el mismo email
-password String // Hash de bcrypt, nunca texto plano
-creadoEn DateTime @default(now()) // Se llena automáticamente al crear
-sesiones Sesion[] // Relación: un usuario puede tener muchas sesiones
+  id        Int      @id @default(autoincrement()) // Clave primaria autoincremental
+  nombre    String
+  email     String   @unique // No puede haber dos con el mismo email
+  password  String   // Hash de bcrypt, nunca texto plano
+  creadoEn  DateTime @default(now()) // Se llena automáticamente al crear
+  sesiones  Sesion[] // Relación: un usuario puede tener muchas sesiones
 }
+
 // Modelo Sesion: representa la tabla 'sesiones' en la BD
 model Sesion {
-id Int @id @default(autoincrement())
-titulo String
-descripcion String? // El ? significa que es opcional (puede ser null)
-materia String @default("General")
-fechaHora DateTime @default(now())
-completada Boolean @default(false)
-creadaEn DateTime @default(now())
-actualizadaEn DateTime @updatedAt // Se actualiza automáticamente
-// Relación con Usuario: cada sesión pertenece a un usuario
-// En SQL esto se llama clave foránea (Foreign Key)
-usuarioId Int
-usuario Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  id            Int      @id @default(autoincrement())
+  titulo        String
+  descripcion   String?  // El ? significa que es opcional (puede ser null)
+  materia       String   @default("General")
+  fechaHora     DateTime @default(now())
+  completada    Boolean  @default(false)
+  creadaEn      DateTime @default(now())
+  actualizadaEn DateTime @updatedAt // Se actualiza automáticamente
+
+  // Relación con Usuario: cada sesión pertenece a un usuario
+  // En SQL esto se llama clave foránea (Foreign Key)
+  usuarioId Int
+  usuario   Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
 }
+

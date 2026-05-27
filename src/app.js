@@ -19,6 +19,13 @@ const app = express();
 // 1. MORGAN: Registra en consola las peticiones HTTP que entran (logs)
 app.use(morgan('dev'));
 
+const allowedConnectSrc = [
+  "'self'",
+  'http://localhost:3000',
+  process.env.CORS_ORIGIN,
+  'https://validator.swagger.io'
+].filter(Boolean);
+
 // 2. HELMET: Protege la API con cabeceras HTTP de seguridad
 // CORREGIDO: Permite la carga de estilos y scripts internos que necesita Swagger UI
 app.use(helmet({
@@ -28,7 +35,7 @@ app.use(helmet({
       scriptSrc: ["'self'", "'unsafe-inline'", "https://cdnjs.cloudflare.com"],
       styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
       imgSrc: ["'self'", "data:", "https://validator.swagger.io"],
-      connectSrc: ["'self'", "http://localhost:3000", "https://studysync-api-yd9y.onrender.com"]
+      connectSrc: allowedConnectSrc
     }
   }
 }));
@@ -107,3 +114,5 @@ app.use((err, req, res, next) => {
 });
 
 module.exports = app;
+
+

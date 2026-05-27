@@ -43,6 +43,7 @@ module.exports = swaggerDocs;*/
 // y genera automáticamente un documento JSON con la especificación OpenAPI 3.0.
 // Ese documento es el que Swagger UI (la página web) va a renderizar.
 const swaggerJsdoc = require('swagger-jsdoc');
+const productionUrl = process.env.BASE_URL || process.env.RENDER_EXTERNAL_URL || 'https://studysync-api-yd9y.onrender.com';
 const opciones = {
 // 'definition' describe tu API: nombre, versión, descripción y servidores
 definition: {
@@ -66,7 +67,7 @@ url: 'http://localhost:3000',
 description: 'Desarrollo local'
 },
 {
-url: 'https://studysync-api-a5o0.onrender.com',
+url: productionUrl,
 description: 'Producción (Render)'
 }
 ],

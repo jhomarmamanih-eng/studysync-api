@@ -1,0 +1,175 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'Plantilla de AWS CloudFormation para aprovisionar la infraestructura de producción de StudySync API (ECS, RDS PostgreSQL, ElastiCache Redis).'
+
+Parameters:
+  EnvironmentName:
+    Type: String
+    Default: 'StudySync-Production'
+    Description: 'Nombre del entorno de despliegue.'
+
+  DBUsername:
+    Type: String
+    Default: 'postgres'
+    Description: 'Usuario maestro para la base de datos PostgreSQL.'
+
+  DBPassword:
+    Type: String
+    NoEcho: true
+    Default: 'StudySyncDB2026x'
+    Description: 'Contraseña maestra de la base de datos PostgreSQL (mínimo 8 caracteres).'
+
+Resources:
+  # ==========================================================================
+  # CAPA DE RED (VPC Y SUBREDES REQUERIDAS POR RDS Y REDIS)
+  # ==========================================================================
+  
+  StudySyncVPC:
+    Type: 'AWS::EC2::VPC'
+    Properties:
+      CidrBlock: '10.0.0.0/16'
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      Tags:
+        - Key: Name
+          Value: !Sub '${EnvironmentName}-VPC'
+
+  StudySyncSubnetA:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      VpcId: !Ref StudySyncVPC
+      CidrBlock: '10.0.1.0/24'
+      AvailabilityZone: !Select [0, !GetAZs '']
+      Tags:
+        - Key: Name
+          Value: !Sub '${EnvironmentName}-SubnetA'
+
+  StudySyncSubnetB:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      VpcId: !Ref StudySyncVPC
+      CidrBlock: '10.0.2.0/24'
+      AvailabilityZone: !Select [1, !GetAZs '']
+      Tags:
+        - Key: Name
+          Value: !Sub '${EnvironmentName}-SubnetB'
+
+  # Grupo de subredes obligatorio para bases de datos multizona
+  StudySyncDBSubnetGroup:
+    Type: 'AWS::RDS::DBSubnetGroup'
+    Properties:
+      DBSubnetGroupDescription: 'Grupo de subredes para la base de datos StudySync RDS'
+      SubnetIds:
+        - !Ref StudySyncSubnetA
+        - !Ref StudySyncSubnetB
+
+  # Grupo de subredes para el clúster de caché Redis
+  StudySyncRedisSubnetGroup:
+    Type: 'AWS::ElastiCache::SubnetGroup'
+    Properties:
+      Description: 'Grupo de subredes para ElastiCache Redis'
+      SubnetIds:
+        - !Ref StudySyncSubnetA
+        - !Ref StudySyncSubnetB
+
+  # ==========================================================================
+  # CAPA DE SEGURIDAD (SECURITY GROUPS)
+  # ==========================================================================
+  
+  StudySyncSecurityGroup:
+    Type: 'AWS::EC2::SecurityGroup'
+    Properties:
+      GroupDescription: 'Permitir trafico interno de red para puertos 3000, 5432 y 6379'
+      VpcId: !Ref StudySyncVPC
+      SecurityGroupIngress:
+        # Puerto 3000 para el contenedor de la API Express
+        - IpProtocol: tcp
+          FromPort: 3000
+          ToPort: 3000
+          CidrIp: '0.0.0.0/0'
+        # Puerto 5432 para la base de datos PostgreSQL
+        - IpProtocol: tcp
+          FromPort: 5432
+          ToPort: 5432
+          CidrIp: '10.0.0.0/16'
+        # Puerto 6379 para el bus de mensajes distribuidor Redis
+        - IpProtocol: tcp
+          FromPort: 6379
+          ToPort: 6379
+          CidrIp: '10.0.0.0/16'
+
+  # ==========================================================================
+  # CAPA DE ORQUESTACIÓN (AWS ECS CLUSTER)
+  # ==========================================================================
+  
+  StudySyncECSCluster:
+    Type: 'AWS::ECS::Cluster'
+    Properties:
+      ClusterName: !Sub '${EnvironmentName}-Cluster'
+      Tags:
+        - Key: Name
+          Value: !Sub '${EnvironmentName}-Cluster'
+
+  # ==========================================================================
+  # CAPA DE PERSISTENCIA (AWS RDS POSTGRESQL)
+  # ==========================================================================
+  
+  StudySyncRDSInstance:
+    Type: 'AWS::RDS::DBInstance'
+    Properties:
+      DBName: 'studysync'
+      Engine: 'postgres'
+      EngineVersion: '15'
+      MasterUsername: !Ref DBUsername
+      MasterUserPassword: !Ref DBPassword
+      DBInstanceClass: 'db.t3.micro' # Capa gratuita elegible
+      AllocatedStorage: '20'
+      DBSubnetGroupName: !Ref StudySyncDBSubnetGroup
+      VPCSecurityGroups:
+        - !GetAtt StudySyncSecurityGroup.GroupId
+      PubliclyAccessible: true
+      DeleteAutomatedBackups: true
+      SkipFinalSnapshot: true
+      Tags:
+        - Key: Name
+          Value: !Sub '${EnvironmentName}-Database'
+
+  # ==========================================================================
+  # CAPA DE MENSAJERÍA (AWS ELASTICACHE REDIS)
+  # ==========================================================================
+  
+  StudySyncRedisCluster:
+    Type: 'AWS::ElastiCache::CacheCluster'
+    Properties:
+      ClusterName: 'studysync-cache'
+      Engine: 'redis'
+      EngineVersion: '7.0'
+      CacheNodeType: 'cache.t3.micro' # Configuración de bajo consumo
+      NumCacheNodes: '1'
+      CacheSubnetGroupName: !Ref StudySyncRedisSubnetGroup
+      VpcSecurityGroupIds:
+        - !GetAtt StudySyncSecurityGroup.GroupId
+      Tags:
+        - Key: Name
+          Value: !Sub '${EnvironmentName}-Redis'
+
+# ==========================================================================
+# PARÁMETROS DE SALIDA (OUTPUTS)
+# ==========================================================================
+Outputs:
+  ECSClusterName:
+    Description: 'Nombre del clúster ECS aprovisionado'
+    Value: !Ref StudySyncECSCluster
+    Export:
+      Name: !Sub '${AWS::StackName}-ECSClusterName'
+
+  RDSEndpoint:
+    Description: 'Dirección de conexión (host) de la base de datos PostgreSQL'
+    Value: !GetAtt StudySyncRDSInstance.Endpoint.Address
+    Export:
+      Name: !Sub '${AWS::StackName}-RDSEndpoint'
+
+  RedisEndpoint:
+    Description: 'Dirección de conexión de Redis'
+    Value: !GetAtt StudySyncRedisCluster.RedisEndpoint.Address
+    Export:
+      Name: !Sub '${AWS::StackName}-RedisEndpoint'

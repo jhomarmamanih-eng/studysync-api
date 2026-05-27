@@ -1,0 +1,9 @@
+services:
+  - id: srv-d85u9hli849s7387nl3g
+    type: web
+    name: studysync-api
+    env: node
+    plan: free
+    branch: main
+    buildCommand: npm install
+    startCommand: npm start

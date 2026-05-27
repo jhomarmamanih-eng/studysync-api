@@ -1,0 +1,55 @@
+﻿AWSTemplateFormatVersion: '2010-09-09'
+Description: >
+  StudySync Infrastructure — Programación IV UPDS 2026
+Recursos: S3 Bucket + DynamoDB Table + SSM Parameter
+Parameters:
+  NombreProyecto:
+    Type: String
+    Default: studysync
+    Description: Nombre del proyecto en minúsculas
+    AllowedPattern: "[a-z0-9-]+"
+  Ambiente:
+    Type: String
+    Default: dev
+    AllowedValues: [dev, staging, prod]
+    Description: Ambiente de despliegue
+Resources:
+  # S3 Bucket para archivos estáticos (imágenes, documentos de estudio)
+  BucketArchivos:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub '${NombreProyecto}-${Ambiente}-archivos'
+      Tags:
+        - Key: Proyecto
+          Value: !Ref NombreProyecto
+        - Key: Ambiente
+          Value: !Ref Ambiente
+  # Tabla DynamoDB para datos de sesiones (alternativa NoSQL a Supabase)
+  TablaSesiones:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub '${NombreProyecto}-${Ambiente}-sesiones'
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+  # Parámetro SSM: URL pública de la API en producción
+  ParametroApiUrl:
+    Type: AWS::SSM::Parameter
+    DependsOn: TablaSesiones
+    Properties:
+      Name: !Sub '/${NombreProyecto}/${Ambiente}/api-url'
+      Type: String
+      Value: 'https://studysync-api.onrender.com'
+Outputs:
+  NombreBucket:
+    Description: Nombre del bucket S3 creado
+    Value: !Ref BucketArchivos
+    Export:
+      Name: !Sub '${NombreProyecto}-${Ambiente}-BucketName'
+  NombreTabla:
+    Description: Nombre de la tabla DynamoDB creada
+    Value: !Ref TablaSesiones
