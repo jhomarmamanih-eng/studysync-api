@@ -1,206 +1,566 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="StudySync API - Sistema de coordinación de grupos de estudio">
-    <title>StudySync API</title>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
-    <style>
-        :root {
-            --bg-color: #0f172a;
-            --primary: #3b82f6;
-            --primary-hover: #2563eb;
-            --secondary: #8b5cf6;
-            --text-main: #f8fafc;
-            --text-muted: #94a3b8;
-            --glass-bg: rgba(30, 41, 59, 0.7);
-            --glass-border: rgba(255, 255, 255, 0.1);
-        }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>StudySync – Real-time Monitor & API Hub</title>
+  
+  <!-- Importación de Fuentes Premium de Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- Script Cliente de Socket.io (servido automáticamente por el servidor Node) -->
+  <script src="/socket.io/socket.io.js"></script>
 
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: 'Outfit', sans-serif;
-        }
+  <style>
+    /* ==========================================================================
+       SISTEMA DE DISEÑO PREMIUM (ESTILOS GLOBALES Y VARIABLES)
+       ========================================================================== */
+    :root {
+      --bg-dark: #090a0f;
+      --bg-card: rgba(17, 20, 32, 0.65);
+      --border-color: rgba(255, 255, 255, 0.08);
+      --text-main: #f3f4f6;
+      --text-muted: #9ca3af;
+      --primary: #3b82f6;       /* Azul Neón */
+      --secondary: #8b5cf6;     /* Violeta Eléctrico */
+      --accent: #10b981;        /* Verde Éxito */
+      --danger: #ef4444;        /* Rojo Error */
+      --glow-primary: rgba(59, 130, 246, 0.4);
+      --glow-secondary: rgba(139, 92, 246, 0.4);
+    }
 
-        body {
-            background-color: var(--bg-color);
-            color: var(--text-main);
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            overflow: hidden;
-            position: relative;
-        }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Outfit', sans-serif;
+    }
 
-        /* Animated Background Elements */
-        .blob {
-            position: absolute;
-            filter: blur(80px);
-            z-index: 0;
-            opacity: 0.6;
-            animation: float 10s ease-in-out infinite alternate;
-        }
-        
-        .blob-1 {
-            background: var(--primary);
-            width: 400px;
-            height: 400px;
-            border-radius: 50%;
-            top: -100px;
-            left: -100px;
-            animation-delay: 0s;
-        }
+    body {
+      background-color: var(--bg-dark);
+      background-image: 
+        radial-gradient(at 10% 20%, rgba(59, 130, 246, 0.15) 0px, transparent 50%),
+        radial-gradient(at 90% 80%, rgba(139, 92, 246, 0.18) 0px, transparent 50%);
+      color: var(--text-main);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 40px 20px;
+      overflow-y: scroll;
+    }
 
-        .blob-2 {
-            background: var(--secondary);
-            width: 300px;
-            height: 300px;
-            border-radius: 50%;
-            bottom: -50px;
-            right: -50px;
-            animation-delay: -5s;
-        }
+    /* Contenedor Principal con límite de ancho */
+    .app-container {
+      width: 100%;
+      max-width: 800px;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
 
-        @keyframes float {
-            0% { transform: translate(0, 0) scale(1); }
-            100% { transform: translate(50px, 50px) scale(1.1); }
-        }
+    /* ==========================================================================
+       CABECERA Y NAVBAR GLASSMORPHIC
+       ========================================================================== */
+    header {
+      background: var(--bg-card);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid var(--border-color);
+      border-radius: 20px;
+      padding: 24px 30px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
+      position: relative;
+      overflow: hidden;
+    }
 
-        .container {
-            position: relative;
-            z-index: 10;
-            background: var(--glass-bg);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
-            border: 1px solid var(--glass-border);
-            border-radius: 24px;
-            padding: 3rem;
-            max-width: 600px;
-            width: 90%;
-            text-align: center;
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
-            transform: translateY(20px);
-            opacity: 0;
-            animation: slideUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-        }
+    header::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 3px;
+      background: linear-gradient(90deg, var(--primary), var(--secondary));
+    }
 
-        @keyframes slideUp {
-            to {
-                transform: translateY(0);
-                opacity: 1;
-            }
-        }
+    .header-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
 
-        h1 {
-            font-size: 3rem;
-            font-weight: 800;
-            margin-bottom: 1rem;
-            background: linear-gradient(to right, #60a5fa, #c084fc);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-        }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
 
-        p {
-            color: var(--text-muted);
-            font-size: 1.125rem;
-            line-height: 1.6;
-            margin-bottom: 2.5rem;
-        }
+    .logo-icon {
+      font-size: 28px;
+      animation: pulse-glow 2s infinite ease-in-out;
+    }
 
-        .links {
-            display: flex;
-            gap: 1.5rem;
-            justify-content: center;
-            flex-wrap: wrap;
-        }
+    .brand-text h1 {
+      font-size: 24px;
+      font-weight: 800;
+      background: linear-gradient(135deg, #ffffff 30%, #a5b4fc 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      letter-spacing: -0.5px;
+    }
 
-        .btn {
-            text-decoration: none;
-            padding: 0.875rem 2rem;
-            border-radius: 12px;
-            font-weight: 600;
-            font-size: 1rem;
-            transition: all 0.3s ease;
-            position: relative;
-            overflow: hidden;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-        }
+    .brand-text span {
+      font-size: 12px;
+      color: var(--text-muted);
+      font-family: 'JetBrains Mono', monospace;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
 
-        .btn-primary {
-            background: linear-gradient(135deg, var(--primary), var(--secondary));
-            color: white;
-            box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4);
-        }
+    /* Estado de la Conexión (Badge dinámico) */
+    #status {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 16px;
+      border-radius: 12px;
+      font-size: 13px;
+      font-weight: 600;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      letter-spacing: 0.2px;
+    }
 
-        .btn-primary:hover {
-            box-shadow: 0 6px 25px rgba(139, 92, 246, 0.6);
-            transform: translateY(-2px);
-        }
+    .conectado {
+      background: rgba(16, 185, 129, 0.12);
+      color: var(--accent);
+      border: 1px solid rgba(16, 185, 129, 0.25);
+      box-shadow: 0 0 15px rgba(16, 185, 129, 0.1);
+    }
 
-        .btn-secondary {
-            background: rgba(255, 255, 255, 0.05);
-            color: var(--text-main);
-            border: 1px solid var(--glass-border);
-        }
+    .desconectado {
+      background: rgba(239, 68, 68, 0.12);
+      color: var(--danger);
+      border: 1px solid rgba(239, 68, 68, 0.25);
+      box-shadow: 0 0 15px rgba(239, 68, 68, 0.1);
+    }
 
-        .btn-secondary:hover {
-            background: rgba(255, 255, 255, 0.1);
-            transform: translateY(-2px);
-        }
+    /* ==========================================================================
+       EL BOTÓN ESTRELLA: REDIRECCIÓN PREMIUM A SWAGGER
+       ========================================================================== */
+    .swagger-cta {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      background: rgba(255, 255, 255, 0.02);
+      border-radius: 14px;
+      padding: 16px;
+      border: 1px dashed rgba(255, 255, 255, 0.08);
+      text-align: center;
+    }
 
-        .status-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.5rem;
-            background: rgba(16, 185, 129, 0.15);
-            color: #34d399;
-            padding: 0.5rem 1rem;
-            border-radius: 999px;
-            font-size: 0.875rem;
-            font-weight: 600;
-            margin-bottom: 1.5rem;
-            border: 1px solid rgba(52, 211, 153, 0.2);
-        }
+    .swagger-button {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      color: #ffffff;
+      text-decoration: none;
+      font-weight: 700;
+      font-size: 15px;
+      padding: 14px 28px;
+      border-radius: 12px;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: 0 4px 20px rgba(59, 130, 246, 0.3);
+      position: relative;
+      overflow: hidden;
+    }
 
-        .status-dot {
-            width: 8px;
-            height: 8px;
-            background-color: #34d399;
-            border-radius: 50%;
-            box-shadow: 0 0 10px #34d399;
-            animation: pulse 2s infinite;
-        }
+    .swagger-button::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(
+        120deg,
+        transparent,
+        rgba(255, 255, 255, 0.2),
+        transparent
+      );
+      transition: all 0.6s;
+    }
 
-        @keyframes pulse {
-            0% { box-shadow: 0 0 0 0 rgba(52, 211, 153, 0.7); }
-            70% { box-shadow: 0 0 0 10px rgba(52, 211, 153, 0); }
-            100% { box-shadow: 0 0 0 0 rgba(52, 211, 153, 0); }
-        }
-    </style>
+    .swagger-button:hover {
+      transform: translateY(-2px);
+      box-shadow: 
+        0 6px 25px rgba(139, 92, 246, 0.45),
+        0 0 15px rgba(59, 130, 246, 0.3);
+    }
+
+    .swagger-button:hover::before {
+      left: 100%;
+    }
+
+    .swagger-button:active {
+      transform: translateY(1px);
+    }
+
+    .swagger-cta p {
+      font-size: 12px;
+      color: var(--text-muted);
+      line-height: 1.4;
+    }
+
+    /* ==========================================================================
+       PANEL DE EVENTOS EN TIEMPO REAL
+       ========================================================================== */
+    .monitor-section {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .section-title {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--text-main);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding-left: 4px;
+    }
+
+    .section-title::before {
+      content: '';
+      display: inline-block;
+      width: 6px;
+      height: 16px;
+      background: var(--secondary);
+      border-radius: 3px;
+    }
+
+    /* Lista de Eventos */
+    #eventos {
+      list-style-type: none;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .placeholder-item {
+      background: var(--bg-card);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      padding: 30px;
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 14px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .placeholder-item svg {
+      color: var(--text-muted);
+      opacity: 0.5;
+      animation: float 3s ease-in-out infinite;
+    }
+
+    /* Tarjeta de Evento Emitido */
+    .evento-card {
+      background: var(--bg-card);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      padding: 20px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      animation: slideIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+      position: relative;
+      overflow: hidden;
+      transition: border-color 0.3s;
+    }
+
+    .evento-card:hover {
+      border-color: rgba(139, 92, 246, 0.3);
+    }
+
+    .evento-card::after {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 4px;
+      background: var(--primary);
+    }
+
+    /* Cabecera del Evento */
+    .evento-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .evento-channel {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text-main);
+      background: rgba(255, 255, 255, 0.05);
+      padding: 4px 10px;
+      border-radius: 6px;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .evento-badge {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      padding: 4px 8px;
+      border-radius: 6px;
+      background: rgba(59, 130, 246, 0.15);
+      color: var(--primary);
+    }
+
+    /* Detalle del Payload */
+    .evento-body {
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    .evento-title {
+      font-weight: 600;
+      font-size: 16px;
+      color: #ffffff;
+      margin-bottom: 6px;
+    }
+
+    /* Renderizado de JSON Estilizado */
+    .evento-payload-json {
+      background: rgba(0, 0, 0, 0.3);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      border-radius: 8px;
+      padding: 12px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      color: #a5b4fc;
+      overflow-x: auto;
+      white-space: pre-wrap;
+    }
+
+    /* Footer del Evento */
+    .evento-footer {
+      display: flex;
+      justify-content: space-between;
+      font-size: 11px;
+      color: var(--text-muted);
+      border-top: 1px solid rgba(255, 255, 255, 0.04);
+      padding-top: 10px;
+    }
+
+    /* ==========================================================================
+       ANIMACIONES Y EFECTOS
+       ========================================================================== */
+    @keyframes pulse-glow {
+      0%, 100% {
+        transform: scale(1);
+        filter: drop-shadow(0 0 2px var(--primary));
+      }
+      50% {
+        transform: scale(1.1);
+        filter: drop-shadow(0 0 10px var(--secondary));
+      }
+    }
+
+    @keyframes float {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-8px); }
+    }
+
+    @keyframes slideIn {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    /* Estilo de la barra de desplazamiento */
+    ::-webkit-scrollbar {
+      width: 8px;
+    }
+    ::-webkit-scrollbar-track {
+      background: var(--bg-dark);
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(255, 255, 255, 0.2);
+    }
+  </style>
 </head>
 <body>
-    <div class="blob blob-1"></div>
-    <div class="blob blob-2"></div>
 
-    <div class="container">
-        <div class="status-badge">
-            <span class="status-dot"></span>
-            Servidor en línea
+  <div class="app-container">
+    
+    <!-- ==========================================
+         CABECERA CON ESTADO Y ENLACE A SWAGGER
+         ========================================== -->
+    <header>
+      <div class="header-top">
+        <div class="brand">
+          <span class="logo-icon">📡</span>
+          <div class="brand-text">
+            <h1>StudySync</h1>
+            <span>Event Broker Monitor</span>
+          </div>
         </div>
-        <h1>StudySync API</h1>
-        <p>Sistema centralizado de coordinación de grupos de estudio. El motor backend está funcionando correctamente y listo para recibir peticiones.</p>
-        
-        <div class="links">
-            <a href="/api-docs" class="btn btn-primary">Ver Documentación (Swagger)</a>
-            <a href="/api" class="btn btn-secondary">Probar API de estado</a>
+        <!-- Indicador visual de estado de WebSockets (Socket.io) -->
+        <div id="status" class="desconectado">
+          <span style="font-size: 8px;">●</span> Conectando al servidor...
         </div>
-    </div>
+      </div>
+
+      <!-- 
+        COMENTARIO EDUCATIVO:
+        El siguiente bloque contiene el enlace interactivo hacia la documentación interactiva Swagger.
+        La ruta '/api-docs' es servida por el plugin 'swagger-ui-express' en el backend. 
+        Este enlace permite que el desarrollador interactúe y pruebe las APIs (POST, GET, PUT) 
+        las cuales automáticamente dispararán eventos Redis que se retransmitirán aquí en tiempo real.
+      -->
+      <div class="swagger-cta">
+        <a href="/api-docs" class="swagger-button" target="_blank" id="swagger-link">
+          🚀 Ir a Documentación Swagger (API Docs)
+        </a>
+        <p>
+          Usa la consola interactiva de Swagger para autenticarte, crear sesiones de estudio y ver cómo se disparan los eventos en tiempo real inmediatamente abajo.
+        </p>
+      </div>
+    </header>
+
+    <!-- ==========================================
+         SECCIÓN DE MONITORIZACIÓN EN TIEMPO REAL
+         ========================================== -->
+    <main class="monitor-section">
+      <h2 class="section-title">Eventos en Tiempo Real (Redis Pub/Sub)</h2>
+      
+      <ul id="eventos">
+        <!-- Contenedor vacío inicial con placeholder informativo -->
+        <li class="placeholder-item" id="eventos-placeholder">
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+          </svg>
+          <p>Esperando la propagación de eventos desde Redis...</p>
+          <p style="font-size: 12px; max-width: 450px;">
+            Abre <a href="/api-docs" style="color: var(--primary); text-decoration: underline;" target="_blank">Swagger</a>, regístrate/inicia sesión para obtener tu token, y crea una sesión para ver fluir los datos.
+          </p>
+        </li>
+      </ul>
+    </main>
+
+  </div>
+
+  <!-- ==========================================
+       LÓGICA JAVASCRIPT DEL CLIENTE (WEBOCKETS)
+       ========================================== -->
+  <script>
+    // 1. Conectar de manera automática al servidor Socket.io en el puerto actual
+    const socket = io();
+
+    const statusBadge = document.getElementById('status');
+    const eventosList = document.getElementById('eventos');
+    const placeholder = document.getElementById('eventos-placeholder');
+
+    // 2. Escuchar el evento de conexión exitosa
+    socket.on('connect', () => {
+      statusBadge.innerHTML = '<span style="font-size: 8px; margin-right: 4px;">●</span> Online';
+      statusBadge.className = 'conectado';
+      console.log('[Socket.io] Conectado exitosamente con ID:', socket.id);
+    });
+
+    // 3. Escuchar eventos de desconexión imprevistos
+    socket.on('disconnect', () => {
+      statusBadge.innerHTML = '<span style="font-size: 8px; margin-right: 4px;">●</span> Offline (Reconectando...)';
+      statusBadge.className = 'desconectado';
+      console.log('[Socket.io] Conexión perdida con el servidor.');
+    });
+
+    // 4. Escuchar los eventos propagados por Redis y reenviados por Socket.io
+    // COMENTARIO EDUCATIVO:
+    // El servidor Node.js escucha eventos de Redis mediante 'sub.on("pmessage")' 
+    // y luego los retransmite mediante 'io.emit("nuevo-evento", ...)'. 
+    // Aquí interceptamos ese mensaje y renderizamos una tarjeta premium con animación.
+    socket.on('nuevo-evento', (evento) => {
+      // Remover el placeholder en el primer evento recibido
+      if (placeholder) {
+        placeholder.remove();
+      }
+
+      // Crear dinámicamente un elemento de lista estilizado como tarjeta glassmorphic
+      const item = document.createElement('li');
+      item.className = 'evento-card';
+
+      // Determinar la fecha/hora legible
+      const horaLegible = new Date(evento.timestamp || Date.now()).toLocaleTimeString();
+      const fechaLegible = new Date(evento.timestamp || Date.now()).toLocaleDateString();
+
+      // Formatear el payload como un JSON estructurado
+      const jsonPayload = JSON.stringify(evento.payload || {}, null, 2);
+
+      // Inyectar estructura HTML con clases de diseño específicas y datos correspondientes
+      item.innerHTML = `
+        <div class="evento-header">
+          <span class="evento-channel">${evento.canal}</span>
+          <span class="evento-badge">${evento.tipo || 'evento'}</span>
+        </div>
+        <div class="evento-body">
+          <div class="evento-title">${evento.payload?.titulo || 'Notificación del Sistema'}</div>
+          <pre class="evento-payload-json">${escapeHtml(jsonPayload)}</pre>
+        </div>
+        <div class="evento-footer">
+          <span>🕒 ${fechaLegible} - ${horaLegible}</span>
+          <span>Socket ID: ${socket.id}</span>
+        </div>
+      `;
+
+      // Insertar el nuevo evento al principio de la lista (más reciente primero)
+      eventosList.insertBefore(item, eventosList.firstChild);
+    });
+
+    // Función auxiliar de escape para evitar inyecciones XSS maliciosas en el HTML
+    function escapeHtml(text) {
+      return text
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+  </script>
 </body>
 </html>

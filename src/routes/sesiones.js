@@ -1,6 +1,11 @@
 const express = require('express');
 const router = express.Router();
-const ctrl = require('../controllers/sesionesController');
+
+// CORREGIDO: Importar con la mayúscula exacta 'SesionesController' para evitar fallos en Linux/despliegue
+const ctrl = require('../controllers/SesionesController');
+
+// CORREGIDO: Importar middleware de autenticación para proteger las rutas que requieren usuario autenticado
+const autenticar = require('../middlewares/autenticar');
 
 /**
  * @swagger
@@ -92,7 +97,8 @@ router.get ('/:id', ctrl.obtenerUna);
  *       400:
  *         description: Error en los datos enviados
  */
-router.post ('/', ctrl.crear);
+// CORREGIDO: Se añade 'autenticar' como middleware para asociar la sesión al usuario logueado
+router.post ('/', autenticar, ctrl.crear);
 
 /**
  * @swagger
@@ -119,7 +125,8 @@ router.post ('/', ctrl.crear);
  *       404:
  *         description: Sesión no encontrada
  */
-router.put ('/:id', ctrl.actualizar);
+// CORREGIDO: Se añade 'autenticar' como middleware para asegurar que solo el creador modifique la sesión
+router.put ('/:id', autenticar, ctrl.actualizar);
 
 /**
  * @swagger
@@ -140,6 +147,7 @@ router.put ('/:id', ctrl.actualizar);
  *       404:
  *         description: Sesión no encontrada
  */
-router.delete('/:id', ctrl.eliminar);
+// CORREGIDO: Se añade 'autenticar' como middleware para asegurar que solo el creador pueda eliminar la sesión
+router.delete('/:id', autenticar, ctrl.eliminar);
 
-module.exports = router;
+module.exports = router;
