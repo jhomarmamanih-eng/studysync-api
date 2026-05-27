@@ -60,27 +60,6 @@ router.get ('/', ctrl.listar);
 
 /**
  * @swagger
- * /api/sesiones/{id}:
- *   get:
- *     summary: Obtiene una sesión por su ID
- *     tags: [Sesiones]
- *     parameters:
- *       - in: path
- *         name: id
- *         schema:
- *           type: integer
- *         required: true
- *         description: ID de la sesión
- *     responses:
- *       200:
- *         description: Sesión encontrada
- *       404:
- *         description: Sesión no encontrada
- */
-router.get ('/:id', ctrl.obtenerUna);
-
-/**
- * @swagger
  * /api/sesiones/usuario/{usuarioId}:
  *   get:
  *     summary: Obtiene las sesiones creadas por un usuario
@@ -109,6 +88,27 @@ router.get('/usuario/:usuarioId', ctrl.listarPorUsuario);
  *         description: Conteo de sesiones
  */
 router.get('/count', ctrl.contar);
+
+/**
+ * @swagger
+ * /api/sesiones/{id}:
+ *   get:
+ *     summary: Obtiene una sesión por su ID
+ *     tags: [Sesiones]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         schema:
+ *           type: integer
+ *         required: true
+ *         description: ID de la sesión
+ *     responses:
+ *       200:
+ *         description: Sesión encontrada
+ *       404:
+ *         description: Sesión no encontrada
+ */
+router.get ('/:id', ctrl.obtenerUna);
 
 /**
  * @swagger
